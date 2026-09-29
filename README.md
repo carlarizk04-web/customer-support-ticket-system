@@ -1,4 +1,4 @@
-# customer-support-ticket-system
+# Customer-support-ticket-system
 A C++ console-based customer support ticket management system with ticket creation, search, status tracking, agent assignment, priority management, statistics, and file storage.
 # Customer Support Ticket Management System
 
