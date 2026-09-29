@@ -1,0 +1,765 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <iomanip>
+#include <limits>
+#include <algorithm>
+
+using namespace std;
+
+// ======================================================
+// CUSTOMER SUPPORT TICKET MANAGEMENT SYSTEM
+// ======================================================
+
+// ---------------------- Ticket Structure ----------------------
+
+struct Ticket {
+    int id;
+    string customerName;
+    string customerEmail;
+    string issue;
+    string priority;
+    string status;
+    string assignedAgent;
+};
+
+// ---------------------- Global Variables ----------------------
+
+vector<Ticket> tickets;
+
+int nextTicketID = 1001;
+
+const string FILE_NAME = "tickets.txt";
+
+// ======================================================
+// INPUT VALIDATION FUNCTIONS
+// ======================================================
+
+int getInteger(const string& message) {
+    int value;
+
+    while (true) {
+        cout << message;
+
+        if (cin >> value) {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return value;
+        }
+
+        cout << "Invalid input. Please enter a number.\n";
+
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    }
+}
+
+string getNonEmptyInput(const string& message) {
+    string input;
+
+    while (true) {
+        cout << message;
+        getline(cin, input);
+
+        if (!input.empty()) {
+            return input;
+        }
+
+        cout << "Input cannot be empty. Please try again.\n";
+    }
+}
+
+// ======================================================
+// FIND TICKET
+// ======================================================
+
+int findTicketIndex(int id) {
+
+    for (int i = 0; i < static_cast<int>(tickets.size()); i++) {
+
+        if (tickets[i].id == id) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// ======================================================
+// PAUSE PROGRAM
+// ======================================================
+
+void pauseProgram() {
+
+    cout << "\nPress Enter to continue...";
+
+    cin.get();
+}
+
+// ======================================================
+// SAVE TICKETS TO FILE
+// ======================================================
+
+void saveTickets() {
+
+    ofstream file(FILE_NAME);
+
+    if (!file) {
+        cout << "Error: Could not save tickets.\n";
+        return;
+    }
+
+    for (const Ticket& ticket : tickets) {
+
+        file << ticket.id << "|"
+             << ticket.customerName << "|"
+             << ticket.customerEmail << "|"
+             << ticket.issue << "|"
+             << ticket.priority << "|"
+             << ticket.status << "|"
+             << ticket.assignedAgent << "\n";
+    }
+
+    file.close();
+}
+
+// ======================================================
+// LOAD TICKETS FROM FILE
+// ======================================================
+
+void loadTickets() {
+
+    ifstream file(FILE_NAME);
+
+    if (!file) {
+        return;
+    }
+
+    tickets.clear();
+
+    string line;
+
+    while (getline(file, line)) {
+
+        if (line.empty()) {
+            continue;
+        }
+
+        Ticket ticket;
+
+        size_t position = 0;
+        vector<string> data;
+
+        while ((position = line.find('|')) != string::npos) {
+
+            data.push_back(line.substr(0, position));
+
+            line.erase(0, position + 1);
+        }
+
+        data.push_back(line);
+
+        if (data.size() == 7) {
+
+            ticket.id = stoi(data[0]);
+            ticket.customerName = data[1];
+            ticket.customerEmail = data[2];
+            ticket.issue = data[3];
+            ticket.priority = data[4];
+            ticket.status = data[5];
+            ticket.assignedAgent = data[6];
+
+            tickets.push_back(ticket);
+
+            if (ticket.id >= nextTicketID) {
+                nextTicketID = ticket.id + 1;
+            }
+        }
+    }
+
+    file.close();
+}
+
+// ======================================================
+// DISPLAY SINGLE TICKET
+// ======================================================
+
+void displayTicket(const Ticket& ticket) {
+
+    cout << "\n----------------------------------------\n";
+
+    cout << "Ticket ID      : " << ticket.id << "\n";
+    cout << "Customer       : " << ticket.customerName << "\n";
+    cout << "Email          : " << ticket.customerEmail << "\n";
+    cout << "Issue          : " << ticket.issue << "\n";
+    cout << "Priority       : " << ticket.priority << "\n";
+    cout << "Status         : " << ticket.status << "\n";
+    cout << "Assigned Agent : " << ticket.assignedAgent << "\n";
+
+    cout << "----------------------------------------\n";
+}
+
+// ======================================================
+// CREATE TICKET
+// ======================================================
+
+void createTicket() {
+
+    Ticket ticket;
+
+    ticket.id = nextTicketID++;
+
+    cout << "\n========================================\n";
+    cout << "           CREATE NEW TICKET\n";
+    cout << "========================================\n";
+
+    ticket.customerName =
+        getNonEmptyInput("Customer name: ");
+
+    ticket.customerEmail =
+        getNonEmptyInput("Customer email: ");
+
+    ticket.issue =
+        getNonEmptyInput("Describe the issue: ");
+
+    // Priority
+    int priorityChoice;
+
+    cout << "\nSelect priority:\n";
+    cout << "1. Low\n";
+    cout << "2. Medium\n";
+    cout << "3. High\n";
+    cout << "4. Critical\n";
+
+    while (true) {
+
+        priorityChoice = getInteger("Choose priority: ");
+
+        if (priorityChoice >= 1 && priorityChoice <= 4) {
+            break;
+        }
+
+        cout << "Please choose between 1 and 4.\n";
+    }
+
+    switch (priorityChoice) {
+
+        case 1:
+            ticket.priority = "Low";
+            break;
+
+        case 2:
+            ticket.priority = "Medium";
+            break;
+
+        case 3:
+            ticket.priority = "High";
+            break;
+
+        case 4:
+            ticket.priority = "Critical";
+            break;
+    }
+
+    ticket.status = "Open";
+
+    ticket.assignedAgent =
+        getNonEmptyInput("Assign to agent: ");
+
+    tickets.push_back(ticket);
+
+    saveTickets();
+
+    cout << "\nTicket created successfully!\n";
+    cout << "Ticket ID: " << ticket.id << "\n";
+}
+
+// ======================================================
+// VIEW ALL TICKETS
+// ======================================================
+
+void viewAllTickets() {
+
+    cout << "\n========================================\n";
+    cout << "             ALL TICKETS\n";
+    cout << "========================================\n";
+
+    if (tickets.empty()) {
+
+        cout << "No tickets found.\n";
+        return;
+    }
+
+    cout << left
+         << setw(8) << "ID"
+         << setw(20) << "Customer"
+         << setw(12) << "Priority"
+         << setw(15) << "Status"
+         << setw(20) << "Agent"
+         << "\n";
+
+    cout << string(75, '-') << "\n";
+
+    for (const Ticket& ticket : tickets) {
+
+        cout << left
+             << setw(8) << ticket.id
+             << setw(20) << ticket.customerName
+             << setw(12) << ticket.priority
+             << setw(15) << ticket.status
+             << setw(20) << ticket.assignedAgent
+             << "\n";
+    }
+}
+
+// ======================================================
+// VIEW TICKET DETAILS
+// ======================================================
+
+void viewTicketDetails() {
+
+    int id = getInteger("\nEnter ticket ID: ");
+
+    int index = findTicketIndex(id);
+
+    if (index == -1) {
+
+        cout << "Ticket not found.\n";
+        return;
+    }
+
+    displayTicket(tickets[index]);
+}
+
+// ======================================================
+// SEARCH TICKETS
+// ======================================================
+
+void searchTickets() {
+
+    cout << "\n========================================\n";
+    cout << "             SEARCH TICKETS\n";
+    cout << "========================================\n";
+
+    string searchTerm =
+        getNonEmptyInput("Enter customer name or issue keyword: ");
+
+    bool found = false;
+
+    for (const Ticket& ticket : tickets) {
+
+        string customer = ticket.customerName;
+        string issue = ticket.issue;
+
+        // Convert both strings to lowercase
+        transform(customer.begin(), customer.end(),
+                  customer.begin(), ::tolower);
+
+        transform(issue.begin(), issue.end(),
+                  issue.begin(), ::tolower);
+
+        string keyword = searchTerm;
+
+        transform(keyword.begin(), keyword.end(),
+                  keyword.begin(), ::tolower);
+
+        if (customer.find(keyword) != string::npos ||
+            issue.find(keyword) != string::npos) {
+
+            displayTicket(ticket);
+
+            found = true;
+        }
+    }
+
+    if (!found) {
+        cout << "\nNo matching tickets found.\n";
+    }
+}
+
+// ======================================================
+// UPDATE TICKET STATUS
+// ======================================================
+
+void updateTicketStatus() {
+
+    int id = getInteger("\nEnter ticket ID: ");
+
+    int index = findTicketIndex(id);
+
+    if (index == -1) {
+
+        cout << "Ticket not found.\n";
+        return;
+    }
+
+    cout << "\nCurrent status: "
+         << tickets[index].status << "\n";
+
+    cout << "\nSelect new status:\n";
+    cout << "1. Open\n";
+    cout << "2. In Progress\n";
+    cout << "3. Pending Customer\n";
+    cout << "4. Resolved\n";
+    cout << "5. Closed\n";
+
+    int choice;
+
+    while (true) {
+
+        choice = getInteger("Choose status: ");
+
+        if (choice >= 1 && choice <= 5) {
+            break;
+        }
+
+        cout << "Invalid choice.\n";
+    }
+
+    switch (choice) {
+
+        case 1:
+            tickets[index].status = "Open";
+            break;
+
+        case 2:
+            tickets[index].status = "In Progress";
+            break;
+
+        case 3:
+            tickets[index].status = "Pending Customer";
+            break;
+
+        case 4:
+            tickets[index].status = "Resolved";
+            break;
+
+        case 5:
+            tickets[index].status = "Closed";
+            break;
+    }
+
+    saveTickets();
+
+    cout << "\nTicket status updated successfully.\n";
+}
+
+// ======================================================
+// CHANGE PRIORITY
+// ======================================================
+
+void changePriority() {
+
+    int id = getInteger("\nEnter ticket ID: ");
+
+    int index = findTicketIndex(id);
+
+    if (index == -1) {
+
+        cout << "Ticket not found.\n";
+        return;
+    }
+
+    cout << "\nCurrent priority: "
+         << tickets[index].priority << "\n";
+
+    cout << "\nSelect new priority:\n";
+    cout << "1. Low\n";
+    cout << "2. Medium\n";
+    cout << "3. High\n";
+    cout << "4. Critical\n";
+
+    int choice;
+
+    while (true) {
+
+        choice = getInteger("Choose priority: ");
+
+        if (choice >= 1 && choice <= 4) {
+            break;
+        }
+
+        cout << "Invalid choice.\n";
+    }
+
+    switch (choice) {
+
+        case 1:
+            tickets[index].priority = "Low";
+            break;
+
+        case 2:
+            tickets[index].priority = "Medium";
+            break;
+
+        case 3:
+            tickets[index].priority = "High";
+            break;
+
+        case 4:
+            tickets[index].priority = "Critical";
+            break;
+    }
+
+    saveTickets();
+
+    cout << "\nPriority updated successfully.\n";
+}
+
+// ======================================================
+// REASSIGN TICKET
+// ======================================================
+
+void reassignTicket() {
+
+    int id = getInteger("\nEnter ticket ID: ");
+
+    int index = findTicketIndex(id);
+
+    if (index == -1) {
+
+        cout << "Ticket not found.\n";
+        return;
+    }
+
+    cout << "\nCurrent agent: "
+         << tickets[index].assignedAgent << "\n";
+
+    string newAgent =
+        getNonEmptyInput("Enter new agent name: ");
+
+    tickets[index].assignedAgent = newAgent;
+
+    saveTickets();
+
+    cout << "\nTicket reassigned successfully.\n";
+}
+
+// ======================================================
+// DELETE TICKET
+// ======================================================
+
+void deleteTicket() {
+
+    int id = getInteger("\nEnter ticket ID to delete: ");
+
+    int index = findTicketIndex(id);
+
+    if (index == -1) {
+
+        cout << "Ticket not found.\n";
+        return;
+    }
+
+    cout << "\nTicket found:\n";
+
+    displayTicket(tickets[index]);
+
+    cout << "\nAre you sure you want to delete this ticket?\n";
+    cout << "1. Yes\n";
+    cout << "2. No\n";
+
+    int choice = getInteger("Choose: ");
+
+    if (choice == 1) {
+
+        tickets.erase(tickets.begin() + index);
+
+        saveTickets();
+
+        cout << "\nTicket deleted successfully.\n";
+    }
+    else {
+
+        cout << "\nDeletion cancelled.\n";
+    }
+}
+
+// ======================================================
+// SUPPORT STATISTICS
+// ======================================================
+
+void showStatistics() {
+
+    int open = 0;
+    int inProgress = 0;
+    int pending = 0;
+    int resolved = 0;
+    int closed = 0;
+
+    int low = 0;
+    int medium = 0;
+    int high = 0;
+    int critical = 0;
+
+    for (const Ticket& ticket : tickets) {
+
+        // Status
+        if (ticket.status == "Open")
+            open++;
+
+        else if (ticket.status == "In Progress")
+            inProgress++;
+
+        else if (ticket.status == "Pending Customer")
+            pending++;
+
+        else if (ticket.status == "Resolved")
+            resolved++;
+
+        else if (ticket.status == "Closed")
+            closed++;
+
+        // Priority
+        if (ticket.priority == "Low")
+            low++;
+
+        else if (ticket.priority == "Medium")
+            medium++;
+
+        else if (ticket.priority == "High")
+            high++;
+
+        else if (ticket.priority == "Critical")
+            critical++;
+    }
+
+    cout << "\n========================================\n";
+    cout << "           SUPPORT STATISTICS\n";
+    cout << "========================================\n";
+
+    cout << "\nTotal Tickets: " << tickets.size() << "\n";
+
+    cout << "\n--- Ticket Status ---\n";
+
+    cout << "Open             : " << open << "\n";
+    cout << "In Progress      : " << inProgress << "\n";
+    cout << "Pending Customer : " << pending << "\n";
+    cout << "Resolved         : " << resolved << "\n";
+    cout << "Closed           : " << closed << "\n";
+
+    cout << "\n--- Ticket Priority ---\n";
+
+    cout << "Low              : " << low << "\n";
+    cout << "Medium           : " << medium << "\n";
+    cout << "High             : " << high << "\n";
+    cout << "Critical         : " << critical << "\n";
+}
+
+// ======================================================
+// MAIN MENU
+// ======================================================
+
+void showMenu() {
+
+    cout << "\n";
+    cout << "========================================\n";
+    cout << "     CUSTOMER SUPPORT TICKET SYSTEM\n";
+    cout << "========================================\n";
+
+    cout << "1.  Create New Ticket\n";
+    cout << "2.  View All Tickets\n";
+    cout << "3.  View Ticket Details\n";
+    cout << "4.  Search Tickets\n";
+    cout << "5.  Update Ticket Status\n";
+    cout << "6.  Change Ticket Priority\n";
+    cout << "7.  Reassign Ticket\n";
+    cout << "8.  Delete Ticket\n";
+    cout << "9.  Support Statistics\n";
+    cout << "0.  Exit\n";
+
+    cout << "========================================\n";
+}
+
+// ======================================================
+// MAIN
+// ======================================================
+
+int main() {
+
+    loadTickets();
+
+    cout << "\n========================================\n";
+    cout << "   CUSTOMER SUPPORT TICKET SYSTEM\n";
+    cout << "========================================\n";
+
+    cout << "Welcome to the support management system!\n";
+
+    int choice;
+
+    do {
+
+        showMenu();
+
+        choice = getInteger("Enter your choice: ");
+
+        switch (choice) {
+
+            case 1:
+                createTicket();
+                pauseProgram();
+                break;
+
+            case 2:
+                viewAllTickets();
+                pauseProgram();
+                break;
+
+            case 3:
+                viewTicketDetails();
+                pauseProgram();
+                break;
+
+            case 4:
+                searchTickets();
+                pauseProgram();
+                break;
+
+            case 5:
+                updateTicketStatus();
+                pauseProgram();
+                break;
+
+            case 6:
+                changePriority();
+                pauseProgram();
+                break;
+
+            case 7:
+                reassignTicket();
+                pauseProgram();
+                break;
+
+            case 8:
+                deleteTicket();
+                pauseProgram();
+                break;
+
+            case 9:
+                showStatistics();
+                pauseProgram();
+                break;
+
+            case 0:
+
+                saveTickets();
+
+                cout << "\n========================================\n";
+                cout << "Thank you for using the system!\n";
+                cout << "Goodbye!\n";
+                cout << "========================================\n";
+
+                break;
+
+            default:
+
+                cout << "\nInvalid choice.\n";
+                cout << "Please choose an option from 0 to 9.\n";
+
+                pauseProgram();
+        }
+
+    } while (choice != 0);
+
+    return 0;
+}
